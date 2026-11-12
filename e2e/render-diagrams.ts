@@ -17,7 +17,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME || '/
 const page = await browser.newPage();
 await page.setContent(`<style>@font-face{font-family:Inter;src:url(data:font/woff2;base64,${readFileSync(font).toString('base64')})}</style><div id=o></div>`);
 await page.addScriptTag({ content: mermaidJs });
-await page.evaluate(() => document.fonts.ready);
+await page.evaluate(async () => { await document.fonts.load('14px Inter'); await document.fonts.load('600 14px Inter'); await document.fonts.ready; });
 for (const f of readdirSync(dir).filter((f) => f.endsWith('.mmd'))) {
   const src = readFileSync(dir + f, 'utf8');
   const svg = await page.evaluate(async ({ src, id }: { src: string; id: string }) => {
@@ -25,7 +25,7 @@ for (const f of readdirSync(dir).filter((f) => f.endsWith('.mmd'))) {
     mermaid.initialize({
       startOnLoad: false, theme: 'base', securityLevel: 'strict', fontFamily: 'Inter, sans-serif',
       flowchart: { htmlLabels: false, curve: 'basis', padding: 14, nodeSpacing: 40, rankSpacing: 56 },
-      er: { useMaxWidth: false }, sequence: { useMaxWidth: false, mirrorActors: false, actorMargin: 60 },
+      er: { useMaxWidth: false }, sequence: { useMaxWidth: false, mirrorActors: false, actorMargin: 24, width: 110, boxMargin: 6, messageMargin: 30 },
       themeVariables: {
         fontFamily: 'Inter, sans-serif', fontSize: '14px', background: '#ffffff',
         primaryColor: '#ffffff', primaryBorderColor: '#cfcfcf', primaryTextColor: '#111111',

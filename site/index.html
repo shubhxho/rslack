@@ -20,6 +20,7 @@
     <a href="#features">Features</a>
     <a href="#quickstart">Quickstart</a>
     <a href="#docker">Docker</a>
+    <a href="/rslack-guide.pdf" download>Guide (PDF)</a>
     <a href="https://github.com/shubhxho/rslack" class="btn sm">GitHub <span aria-hidden="true">↗</span></a>
   </nav>
 </header>
@@ -31,6 +32,7 @@
   <p class="lead">rslack is self-hosted, Slack-style chat. Channels, DMs, threads, reactions, search and uploads in one ~7&nbsp;MB executable and one SQLite file. No Postgres, no Redis, no Node.</p>
   <div class="cta">
     <a class="btn primary" href="#quickstart">Get started</a>
+    <a class="btn" href="/rslack-guide.pdf" download="rslack-guide.pdf">Download PDF guide <span aria-hidden="true">↓</span></a>
     <a class="btn" href="https://github.com/shubhxho/rslack">View source</a>
     <span class="soon" title="A Hugging Face Space bundle is ready, but no hosted demo is running yet">Live demo coming soon</span>
   </div>
@@ -101,6 +103,11 @@ cargo build --release
 <span class="c"># → http://localhost:8080 · data persists in the rslack-data volume</span></code></pre>
 </section>
 
+<section id="guide" class="wrap section">
+  <div class="head"><h2>The guide</h2><p>A 20-page PDF covering features, architecture and data model diagrams, install, configuration, the full REST and WebSocket reference, the security model, testing, limitations and roadmap.</p></div>
+  <p><a class="btn primary" href="/rslack-guide.pdf" download="rslack-guide.pdf">Download PDF guide <span aria-hidden="true">↓</span></a> <a class="btn" href="https://github.com/shubhxho/rslack/releases/tag/v0.1.0">v0.1.0 release</a></p>
+</section>
+
 <section class="wrap section">
   <div class="head"><h2>How it works</h2><p>A REST handler checks access, commits to SQLite, then hands a JSON event to an in-process hub that pushes it to every open socket of the channel's members. Nothing reaches a client before it's persisted; a client that reconnects simply re-fetches.</p></div>
   <ol class="flow"><li>Browser</li><li>axum REST</li><li>SQLite · WAL + FTS5</li><li>Hub</li><li>WebSocket</li><li>Browsers</li></ol>
@@ -108,8 +115,8 @@ cargo build --release
 </main>
 
 <footer class="wrap">
-  <p>rslack v0.1 · MIT © 2026 shubhxho · <a href="https://github.com/shubhxho/rslack">Source</a></p>
-  <p class="muted">Known gaps in v0.1: single node only, no roles or moderation, no rate limiting. See the README for the full list.</p>
+  <p>rslack v0.1 · MIT © 2026 shubhxho · <a href="https://github.com/shubhxho/rslack">Source</a> · <a href="/rslack-guide.pdf">Guide (PDF)</a> · <a href="https://github.com/shubhxho/rslack/releases/tag/v0.1.0">Release</a></p>
+  <p class="muted">Known gaps in v0.1: single node only, no roles or moderation, no rate limiting. See the guide for the full list.</p>
 </footer>
 </body>
 </html>

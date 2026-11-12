@@ -2,6 +2,8 @@
 
 A self-hosted, Slack-style team chat in a single Rust binary. The JSON API, the WebSocket and the web UI are all served from one executable, and everything it stores goes in one SQLite file plus an uploads folder. Running it needs nothing else: no Postgres, no Redis, no Node.
 
+**[Website](https://rslack.vercel.app)** · **[PDF guide](docs/rslack-guide.pdf)** (20 pages: architecture, install, configuration, API and WebSocket reference, security model) · **[Release v0.1.0](https://github.com/shubhxho/rslack/releases/tag/v0.1.0)** (Linux x86_64 binary, guide, source)
+
 ![rslack, light theme](docs/screenshots/03-main-light.png)
 
 | Dark theme | Thread panel | Search |
@@ -12,7 +14,7 @@ A self-hosted, Slack-style team chat in a single Rust binary. The JSON API, the 
 |---|---|---|---|
 | ![signup](docs/screenshots/01-signup.png) | ![onboarding](docs/screenshots/02-onboarding.png) | ![create channel](docs/screenshots/07-create-channel.png) | ![unread](docs/screenshots/08-unread-dark.png) |
 
-*These screenshots come from a real run: `e2e/e2e.mjs` drives two headless-Chrome users against a live server.*
+*These screenshots come from a real run: `e2e/e2e.ts` drives two headless-Chrome users against a live server.*
 
 > **Status: v0.1.** It works, and it's tested, but it's young. Read [Limitations](#limitations) before you put it in front of a team.
 
@@ -38,7 +40,7 @@ A self-hosted, Slack-style team chat in a single Rust binary. The JSON API, the 
   - Images show inline. Anything that isn't a known-safe type is served as an `attachment` with `nosniff` and a sandbox CSP.
   - Only people who can read the channel can download a file.
 - **@mentions**: highlighted for everyone, with a stronger highlight when the mention is you. The composer autocompletes names.
-- **Web UI**: plain HTML, CSS and JavaScript embedded with `rust-embed`, with no build step.
+- **Web UI**: HTML, CSS and strict TypeScript (`frontend/src/`), compiled to `web/app.js` and embedded with `rust-embed`. The compiled bundle is committed, so `cargo build` never needs Node.
   - Slack-style layout: workspace rail, sidebar, message pane and a thread/search side panel.
   - **Dark and light themes**, which follow your OS setting and can be toggled.
   - Markdown-lite formatting: `*bold*`/`**bold**`, `_italic_`, `~strike~`, `` `code` ``, fenced code blocks, `> quotes`, and auto-linked URLs.
@@ -46,6 +48,16 @@ A self-hosted, Slack-style team chat in a single Rust binary. The JSON API, the 
   - Files can be dragged and dropped or pasted, and the WebSocket reconnects automatically and catches up on missed messages.
 
 ## Quickstart
+
+### Prebuilt binary (Linux x86_64)
+
+```sh
+curl -LO https://github.com/shubhxho/rslack/releases/download/v0.1.0/rslack-v0.1.0-x86_64-unknown-linux-gnu.tar.gz
+curl -LO https://github.com/shubhxho/rslack/releases/download/v0.1.0/rslack-v0.1.0-x86_64-unknown-linux-gnu.tar.gz.sha256
+sha256sum -c rslack-v0.1.0-x86_64-unknown-linux-gnu.tar.gz.sha256
+tar xzf rslack-v0.1.0-x86_64-unknown-linux-gnu.tar.gz
+./rslack-v0.1.0-x86_64-unknown-linux-gnu/rslack   # needs glibc 2.34+
+```
 
 ### From source
 
@@ -206,10 +218,30 @@ The browser walkthrough runs against a live server:
 
 ```sh
 RSLACK_DATA_DIR=$(mktemp -d) RSLACK_PORT=8099 ./target/release/rslack &
-cd e2e && npm install && CHROME=/path/to/chrome node e2e.mjs   # also rewrites docs/screenshots/
+npm ci && CHROME=/path/to/chrome npm run e2e   # also rewrites docs/screenshots/
 ```
 
-CI (`.github/workflows/ci.yml`) runs fmt, clippy, the tests and a release build on Linux, macOS and Windows, plus a `cargo check` on the MSRV, **Rust 1.88**. The web UI has no build step, so editing `web/` and rebuilding is enough. Debug builds read `web/` from disk.
+### Frontend (TypeScript)
+
+The web client lives in `frontend/src/` (`app.ts`, `dom.ts`, and `types.ts`, which mirrors the Rust API and WebSocket types). It is compiled with esbuild into `web/app.js`, which is committed, so Rust-only contributors never need Node. Node 22.18+ (or 24) is needed only for frontend work:
+
+```sh
+npm ci
+npm run typecheck    # strict tsc for the web client and the e2e/diagram scripts
+npm run build:web    # frontend/src/*.ts → web/app.js
+npm run check:web    # fails if web/app.js is stale
+```
+
+Debug builds read `web/` from disk, so run `npm run build:web` and reload the page.
+
+### Docs
+
+```sh
+npm run diagrams              # docs/diagrams/*.mmd → *.svg (needs Chrome)
+python3 docs/build_guide.py   # docs/rslack-guide.pdf (needs Chrome)
+```
+
+CI (`.github/workflows/ci.yml`) runs fmt, clippy, the tests and a release build on Linux, macOS and Windows, plus a `cargo check` on the MSRV, **Rust 1.88**, and a frontend job that runs the typecheck and checks that `web/app.js` is up to date.
 
 ## Limitations
 
