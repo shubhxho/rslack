@@ -1,0 +1,47 @@
+[package]
+name = "rslack"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+description = "Self-hosted team chat (Slack-like) in a single Rust binary: axum + SQLite + WebSocket"
+repository = "https://github.com/shubhxho/rslack"
+readme = "README.md"
+keywords = ["chat", "slack", "self-hosted", "websocket", "axum"]
+categories = ["web-programming::websocket", "web-programming::http-server"]
+
+[lib]
+name = "rslack"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rslack"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+argon2 = { version = "0.5", features = ["std"] }
+axum = { version = "0.8", features = ["ws", "multipart", "macros"] }
+clap = { version = "4", features = ["derive", "env"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+hex = "0.4"
+mime_guess = "2"
+rust-embed = "8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "fs", "io-util", "signal", "sync", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json", "multipart"] }
+tempfile = "3"
+tokio-tungstenite = "0.26"
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = true
