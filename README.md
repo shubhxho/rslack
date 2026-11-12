@@ -234,3 +234,5 @@ These are known gaps in v0.1, listed so they aren't a surprise:
 ## License
 
 MIT © 2026 shubhxho. See [LICENSE](LICENSE).
+
+The UI embeds a Latin subset of the [Inter](https://github.com/rsms/inter) typeface (`web/fonts/Inter.woff2`), licensed under the SIL Open Font License 1.1; see `web/fonts/LICENSE-Inter.txt`.

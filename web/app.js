@@ -46,7 +46,7 @@ function initials(name) {
 }
 function avatar(user, size = '') {
   const name = user.display_name || user.username;
-  return `<div class="avatar ${size}" style="background:hsl(${hue(user.username)} 52% 44%)" title="${esc(name)}">${esc(initials(name))}</div>`;
+  return `<div class="avatar ${size}" style="--h:${hue(user.username)}" title="${esc(name)}">${esc(initials(name))}</div>`;
 }
 function presenceDot(uid) { return `<span class="presence-dot ${S.online.has(uid) ? 'online' : ''}" data-presence="${uid}"></span>`; }
 
@@ -257,8 +257,8 @@ async function refreshChannels() {
 function renderRail() {
   $('#rail').innerHTML = S.workspaces.map((w) => `
     <button class="ws-icon ${w.id === S.wsId ? 'active' : ''}" data-ws="${w.id}" title="${esc(w.name)}"
-      style="background:linear-gradient(135deg,hsl(${hue(w.name)} 60% 48%),hsl(${(hue(w.name) + 40) % 360} 55% 38%))">${esc(initials(w.name))}</button>`).join('')
-    + '<button class="ws-icon add" id="add-ws" title="Create or join a workspace">＋</button>';
+      >${esc(initials(w.name))}</button>`).join('')
+    + '<button class="ws-icon add" id="add-ws" title="Create or join a workspace">+</button>';
 }
 $('#rail').addEventListener('click', (e) => {
   const b = e.target.closest('[data-ws]');
@@ -409,7 +409,7 @@ function msgHtml(m, { compact = false, inThread = false } = {}) {
   const reacts = m.reactions.length ? `<div class="reactions">${m.reactions.map((r) => {
     const names = r.user_ids.map((id) => (id === S.me.id ? 'You' : (member(id) || {}).display_name || 'someone')).join(', ');
     return `<button class="reaction ${r.user_ids.includes(S.me.id) ? 'mine' : ''}" data-act="react" data-emoji="${esc(r.emoji)}" title="${esc(names)} reacted with ${esc(r.emoji)}">${esc(r.emoji)}<span class="n">${r.count}</span></button>`;
-  }).join('')}<button class="reaction add" data-act="pick" title="Add reaction">☺＋</button></div>` : '';
+  }).join('')}<button class="reaction add" data-act="pick" title="Add reaction">+</button></div>` : '';
   const thread = !inThread && m.reply_count > 0
     ? `<button class="thread-link" data-act="thread"><b>${m.reply_count} ${m.reply_count === 1 ? 'reply' : 'replies'}</b><span class="muted">Last reply ${esc(relTime(m.last_reply_at))}</span></button>`
     : '';
@@ -417,9 +417,9 @@ function msgHtml(m, { compact = false, inThread = false } = {}) {
   const actions = m.deleted ? '' : `<div class="msg-actions">
       <button data-act="quick" data-emoji="👍" title="React 👍">👍</button>
       <button data-act="quick" data-emoji="🎉" title="React 🎉">🎉</button>
-      <button data-act="pick" title="Add reaction">☺</button>
-      ${canThread ? '<button data-act="thread" title="Reply in thread">💬</button>' : ''}
-      ${mine ? '<button data-act="edit" title="Edit message">✏️</button><button data-act="delete" title="Delete message">🗑️</button>' : ''}
+      <button data-act="pick" title="Add reaction"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M7 12c.7 1 1.8 1.6 3 1.6s2.3-.6 3-1.6"/><circle cx="7.6" cy="8.2" r=".6" fill="currentColor"/><circle cx="12.4" cy="8.2" r=".6" fill="currentColor"/></svg></button>
+      ${canThread ? '<button data-act="thread" title="Reply in thread"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h9A1.5 1.5 0 0 1 16 5.5v6a1.5 1.5 0 0 1-1.5 1.5H9l-3.5 3v-3h0A1.5 1.5 0 0 1 4 11.5z"/></svg></button>' : ''}
+      ${mine ? '<button data-act="edit" title="Edit message"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5l3 3L7 16H4v-3z"/></svg></button><button data-act="delete" title="Delete message"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 9.5h6.6L14 6"/></svg></button>' : ''}
     </div>`;
   const head = compact
     ? `<span class="msg-gutter-time">${esc(fmtTime(m.created_at))}</span>`
@@ -537,7 +537,7 @@ function startEdit(el, m) {
 
 function confirmDelete(m) {
   const md = openModal('Delete message', `<p>Are you sure you want to delete this message? This can't be undone.</p>
-    <div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="confirm-del" style="background:var(--danger)">Delete</button></div>`);
+    <div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary danger-fill" id="confirm-del">Delete</button></div>`);
   $('#confirm-del', md.el).addEventListener('click', async () => {
     try { await api('DELETE', `/messages/${m.id}`); applyDelete({ message_id: m.id, channel_id: m.channel_id, parent_id: m.parent_id, has_replies: m.reply_count > 0 }); } catch (err) { toast(err.message); }
     md.close();
@@ -1038,7 +1038,7 @@ async function browseModal() {
   const render = (q = '') => {
     $('#bc-list', md.el).innerHTML = rows.filter((r) => r.name.includes(q.toLowerCase())).map((r) => `
       <li class="clickable" data-id="${r.id}"><span class="hash" style="font-size:18px">#</span>
-        <div class="grow"><b>${esc(r.name)}</b><div class="sub">${r.joined ? '<b style="color:var(--online)">✓ Joined</b> · ' : ''}${r.member_count} member${r.member_count === 1 ? '' : 's'}${r.topic ? ' · ' + esc(r.topic) : ''}</div></div>
+        <div class="grow"><b>${esc(r.name)}</b><div class="sub">${r.joined ? '<b class="joined">✓ Joined</b> · ' : ''}${r.member_count} member${r.member_count === 1 ? '' : 's'}${r.topic ? ' · ' + esc(r.topic) : ''}</div></div>
         ${r.joined ? '<button class="btn" data-open>Open</button>' : '<button class="btn primary" data-join>Join</button>'}</li>`).join('') || '<li class="muted">No channels match.</li>';
   };
   render();
