@@ -178,3 +178,17 @@ pub async fn download(
         .body(Body::from(bytes))
         .map_err(|e| AppError::Internal(e.to_string()))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::sanitize_filename;
+
+    #[test]
+    fn strips_paths_and_dots() {
+        assert_eq!(sanitize_filename("../../etc/passwd"), "passwd");
+        assert_eq!(sanitize_filename("C:\\Users\\me\\report.pdf"), "report.pdf");
+        assert_eq!(sanitize_filename(".hidden"), "hidden");
+        assert_eq!(sanitize_filename(""), "file");
+        assert_eq!(sanitize_filename("a\"b\n.txt"), "ab.txt");
+    }
+}

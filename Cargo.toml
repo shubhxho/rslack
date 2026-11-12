@@ -2,7 +2,7 @@
 name = "rslack"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "MIT"
 description = "Self-hosted team chat (Slack-like) in a single Rust binary: axum + SQLite + WebSocket"
 repository = "https://github.com/shubhxho/rslack"

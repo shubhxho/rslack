@@ -264,3 +264,41 @@ async fn handle_client_event(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::HeaderValue;
+
+    #[test]
+    fn hub_tracks_presence_per_connection() {
+        let hub = Hub::default();
+        let (c1, mut rx1, first) = hub.register(7);
+        assert!(first);
+        let (c2, _rx2, first) = hub.register(7);
+        assert!(!first);
+        hub.send_to_users([7], "hi");
+        assert_eq!(rx1.try_recv().unwrap(), "hi");
+        assert!(!hub.unregister(7, c1));
+        assert!(hub.is_online(7));
+        assert!(hub.unregister(7, c2));
+        assert!(!hub.is_online(7));
+    }
+
+    #[test]
+    fn origin_check() {
+        let mut h = HeaderMap::new();
+        h.insert(header::HOST, HeaderValue::from_static("chat.example.com"));
+        assert!(origin_ok(&h));
+        h.insert(
+            header::ORIGIN,
+            HeaderValue::from_static("https://chat.example.com"),
+        );
+        assert!(origin_ok(&h));
+        h.insert(
+            header::ORIGIN,
+            HeaderValue::from_static("https://evil.example"),
+        );
+        assert!(!origin_ok(&h));
+    }
+}

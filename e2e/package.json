@@ -1,0 +1,8 @@
+{
+  "name": "rslack-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Headless-Chrome walkthrough of rslack (two users, channel, messages, thread, reactions, DM, search) that also regenerates docs/screenshots.",
+  "scripts": { "e2e": "node e2e.mjs" },
+  "dependencies": { "playwright-core": "^1.50.0" }
+}

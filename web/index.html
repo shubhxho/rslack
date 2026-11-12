@@ -1,1 +1,144 @@
-<!doctype html><title>rslack</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>rslack</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+  <script>
+    // Apply theme before first paint to avoid a flash.
+    (function () {
+      var t = localStorage.getItem('rslack.theme');
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+</head>
+<body>
+  <noscript>rslack needs JavaScript enabled.</noscript>
+
+  <!-- Auth -->
+  <section id="auth" class="screen center hidden">
+    <div class="card auth-card">
+      <div class="brand"><img src="/favicon.svg" alt=""><span>rslack</span></div>
+      <p class="muted">Self-hosted team chat. One binary, one SQLite file.</p>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-mode="login" role="tab">Sign in</button>
+        <button class="tab" data-mode="signup" role="tab">Create account</button>
+      </div>
+      <form id="auth-form" autocomplete="on">
+        <label>Username<input name="username" autocomplete="username" required minlength="2" maxlength="32" pattern="[A-Za-z0-9_.\-]+" placeholder="e.g. alice"></label>
+        <label class="signup-only hidden">Display name<input name="display_name" maxlength="64" placeholder="Alice Liddell"></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="At least 8 characters"></label>
+        <div class="error" id="auth-error"></div>
+        <button class="btn primary block" type="submit" id="auth-submit">Sign in</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Onboarding (no workspace yet) -->
+  <section id="onboard" class="screen center hidden">
+    <div class="card onboard-card">
+      <div class="brand"><img src="/favicon.svg" alt=""><span>rslack</span></div>
+      <h2>Welcome, <span id="onboard-name"></span></h2>
+      <p class="muted">Create a workspace for your team, or join one with an invite code.</p>
+      <div class="onboard-grid">
+        <form id="onboard-create" class="stack">
+          <h3>Create a workspace</h3>
+          <input name="name" placeholder="Workspace name" required maxlength="80">
+          <button class="btn primary">Create workspace</button>
+        </form>
+        <form id="onboard-join" class="stack">
+          <h3>Join with invite code</h3>
+          <input name="invite_code" placeholder="Invite code" required>
+          <button class="btn">Join workspace</button>
+        </form>
+      </div>
+      <div class="error" id="onboard-error"></div>
+      <button class="link" id="onboard-logout">Sign out</button>
+    </div>
+  </section>
+
+  <!-- Main app -->
+  <section id="app" class="hidden">
+    <nav id="rail" aria-label="Workspaces"></nav>
+    <aside id="sidebar">
+      <header class="ws-header">
+        <button id="ws-menu-btn" class="ws-name" aria-haspopup="true"><span id="ws-title"></span><svg viewBox="0 0 20 20" width="14"><path d="M5 7l5 6 5-6z" fill="currentColor"/></svg></button>
+      </header>
+      <div class="side-scroll">
+        <div class="side-section">
+          <div class="side-head"><button class="side-toggle" data-section="channels">Channels</button>
+            <span class="side-actions"><button class="icon-btn sm" id="browse-btn" title="Browse channels"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4.5 4.5" stroke-linecap="round"/></svg></button><button class="icon-btn sm" id="new-channel-btn" title="Create channel">＋</button></span></div>
+          <ul id="channel-list" class="side-list"></ul>
+        </div>
+        <div class="side-section">
+          <div class="side-head"><button class="side-toggle" data-section="dms">Direct messages</button>
+            <span class="side-actions"><button class="icon-btn sm" id="new-dm-btn" title="New direct message">＋</button></span></div>
+          <ul id="dm-list" class="side-list"></ul>
+        </div>
+      </div>
+      <footer class="me-bar">
+        <div class="avatar-wrap"><div id="me-avatar" class="avatar sm"></div><span class="presence-dot online" id="me-presence"></span></div>
+        <div class="me-text"><div id="me-name" class="me-name"></div><div class="muted small" id="conn-status">Connecting…</div></div>
+        <button class="icon-btn" id="theme-btn" title="Toggle dark / light"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 3a7 7 0 0 1 0 14z" fill="currentColor"/></svg></button>
+        <button class="icon-btn" id="logout-btn" title="Sign out"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 4H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3M12 6l4 4-4 4M16 10H8"/></svg></button>
+      </footer>
+    </aside>
+
+    <main id="main">
+      <header class="chan-header">
+        <div class="chan-title">
+          <h1 id="chan-name"></h1>
+          <button id="chan-topic" class="chan-topic" title="Edit topic"></button>
+        </div>
+        <div class="chan-tools">
+          <button class="members-btn" id="members-btn" title="Members"><span id="members-count"></span> 👤</button>
+          <form id="search-form" class="search" role="search"><input id="search-input" type="search" placeholder="Search messages" autocomplete="off"></form>
+        </div>
+      </header>
+      <div id="messages" class="messages" aria-live="polite"></div>
+      <div id="join-bar" class="join-bar hidden"><span>You're previewing <b id="join-name"></b>.</span><button class="btn primary" id="join-btn">Join channel</button></div>
+      <div id="composer-wrap"></div>
+      <div id="drop-overlay" class="drop-overlay hidden">Drop files to upload</div>
+    </main>
+
+    <aside id="panel" class="panel hidden">
+      <header class="panel-header"><div><h2 id="panel-title">Thread</h2><div id="panel-sub" class="muted small"></div></div><button class="icon-btn" id="panel-close" title="Close">✕</button></header>
+      <div id="panel-body" class="panel-body"></div>
+      <div id="panel-composer"></div>
+    </aside>
+  </section>
+
+  <div id="modal-root"></div>
+  <div id="popover-root"></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <template id="composer-tpl">
+    <form class="composer">
+      <div class="attachments-preview"></div>
+      <textarea rows="1" placeholder="Message" maxlength="8000"></textarea>
+      <div class="composer-bar">
+        <div class="fmt">
+          <button type="button" data-wrap="**" title="Bold (Ctrl+B)"><b>B</b></button>
+          <button type="button" data-wrap="_" title="Italic (Ctrl+I)"><i>I</i></button>
+          <button type="button" data-wrap="~" title="Strikethrough"><s>S</s></button>
+          <button type="button" data-wrap="`" title="Code">&lt;/&gt;</button>
+          <button type="button" data-block="```" title="Code block">{ }</button>
+          <span class="sep"></span>
+          <button type="button" class="attach-btn" title="Attach file">📎</button>
+          <button type="button" class="emoji-btn" title="Emoji">☺</button>
+          <button type="button" class="mention-btn" title="Mention someone">@</button>
+          <input type="file" class="file-input" multiple hidden>
+        </div>
+        <div class="composer-right"><span class="hint muted small">Enter to send · Shift+Enter for newline</span><button class="send-btn" type="submit" title="Send" aria-label="Send">➤</button></div>
+      </div>
+      <div class="typing muted small"></div>
+    </form>
+  </template>
+
+  <script src="/app.js"></script>
+</body>
+</html>

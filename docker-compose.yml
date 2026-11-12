@@ -1,0 +1,19 @@
+services:
+  rslack:
+    build: .
+    image: rslack:0.1
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      RSLACK_MAX_UPLOAD_MB: "10"
+      # Set to "true" when serving behind HTTPS (e.g. a TLS-terminating reverse proxy).
+      RSLACK_SECURE_COOKIES: "false"
+      # Set to "false" after your team has signed up to close registration.
+      RSLACK_ALLOW_SIGNUP: "true"
+      RUST_LOG: "rslack=info"
+    volumes:
+      - rslack-data:/data
+
+volumes:
+  rslack-data:

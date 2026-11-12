@@ -153,6 +153,15 @@ pub async fn join(
         )
         .await?;
         realtime::send_to_user(&state, user.id, &json!({"type": "workspaces.changed"}));
+        if state.hub.is_online(user.id) {
+            // New peers should learn this user's presence right away.
+            realtime::broadcast_to_workspace(
+                &state,
+                ws.id,
+                &json!({"type": "presence", "user_id": user.id, "online": true}),
+            )
+            .await?;
+        }
     }
     Ok(Json(ws))
 }

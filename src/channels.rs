@@ -471,3 +471,24 @@ pub async fn open_dm(
     }
     Ok(Json(summary(&state, id, &user).await?))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_channel_name;
+
+    #[test]
+    fn normalizes() {
+        assert_eq!(
+            normalize_channel_name("#Design Team").unwrap(),
+            "design-team"
+        );
+        assert_eq!(normalize_channel_name("ops_2026").unwrap(), "ops_2026");
+    }
+
+    #[test]
+    fn rejects_bad_names() {
+        for n in ["", "a/b", "dm-1-2", "<script>", &"x".repeat(81)] {
+            assert!(normalize_channel_name(n).is_err(), "{n}");
+        }
+    }
+}

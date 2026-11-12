@@ -211,3 +211,23 @@ async fn private_channel_events_stay_private() {
     let ev = wait_for(&mut a, |v| v["type"] == "typing").await;
     assert_eq!(ev["channel_id"].as_i64(), Some(general));
 }
+
+#[tokio::test]
+async fn presence_reaches_new_workspace_peers() {
+    // Bob connects *before* he shares a workspace with Alice; joining must announce him.
+    let srv = TestServer::start().await;
+    let alice = srv.signup("alice").await;
+    let bob = srv.signup("bob").await;
+    let (_ws, code) = alice.create_workspace("Acme").await;
+    let mut a = connect(&srv, &alice).await;
+    wait_for(&mut a, |v| v["type"] == "hello").await;
+    let mut b = connect(&srv, &bob).await;
+    wait_for(&mut b, |v| v["type"] == "hello").await;
+    bob.join_workspace(&code).await;
+    let bob_id = bob.id;
+    let p = wait_for(&mut a, |v| {
+        v["type"] == "presence" && v["user_id"].as_i64() == Some(bob_id)
+    })
+    .await;
+    assert_eq!(p["online"], true);
+}

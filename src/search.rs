@@ -80,3 +80,33 @@ pub async fn search(
     }
     Ok(Json(json!({ "results": results })))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::fts_query;
+
+    #[test]
+    fn quotes_and_prefixes_terms() {
+        assert_eq!(
+            fts_query("deploy plan").as_deref(),
+            Some("\"deploy\"* \"plan\"*")
+        );
+    }
+
+    #[test]
+    fn strips_fts_syntax() {
+        assert_eq!(
+            fts_query("\"a\" OR NEAR(b) -c*").as_deref(),
+            Some("\"a\"* \"OR\"* \"NEAR\"* \"b\"* \"c\"*")
+        );
+        assert_eq!(fts_query("  ** \"\" "), None);
+    }
+
+    #[test]
+    fn unicode_terms() {
+        assert_eq!(
+            fts_query("café über").as_deref(),
+            Some("\"café\"* \"über\"*")
+        );
+    }
+}
