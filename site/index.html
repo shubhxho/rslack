@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rslack: self-hosted Slack-style chat in one Rust binary</title>
+<meta name="description" content="rslack is a self-hosted team chat: channels, DMs, threads, reactions, search and file uploads, all in a single Rust binary backed by one SQLite file.">
+<meta property="og:title" content="rslack: self-hosted team chat in one Rust binary">
+<meta property="og:description" content="Channels, DMs, threads, reactions, FTS5 search, uploads and realtime WebSockets, from a 7 MB binary and one SQLite file.">
+<meta property="og:image" content="/screenshots/03-main-light.png">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="nav">
+  <a class="logo" href="#"><img src="/favicon.svg" alt="">rslack</a>
+  <nav>
+    <a href="#features">Features</a>
+    <a href="#quickstart">Quickstart</a>
+    <a href="#docker">Docker</a>
+    <a href="https://github.com/shubhxho/rslack" class="pill">Source</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="hero-text">
+    <span class="tag">v0.1 · MIT · Rust</span>
+    <h1>Team chat you can run <span class="grad">from a single binary.</span></h1>
+    <p class="lead">rslack is a self-hosted, Slack-style chat app. Channels, DMs, threads, reactions, search and file uploads all live in one <b>~7&nbsp;MB</b> Rust executable with a single SQLite file. No Postgres, no Redis, no Node.</p>
+    <div class="cta">
+      <a class="btn primary" href="#quickstart">Get started</a>
+      <a class="btn" href="https://github.com/shubhxho/rslack">View source <small>GitHub</small></a>
+      <span class="btn disabled" title="A Hugging Face Space bundle is ready, but no hosted demo is running yet">Live demo <small>coming soon</small></span>
+    </div>
+    <ul class="facts">
+      <li><b>29</b> automated tests</li>
+      <li><b>1</b> binary + <b>1</b> SQLite file</li>
+      <li>Linux · macOS · Windows CI</li>
+    </ul>
+  </div>
+  <figure class="shot hero-shot">
+    <img src="/screenshots/03-main-light.png" alt="rslack main view in the light theme: channel messages and an open thread" width="1440" height="900">
+  </figure>
+</section>
+
+<section id="features" class="features">
+  <h2>Everything a small team needs</h2>
+  <p class="sub">Each feature here was used in a real two-user browser run, which is also where the screenshots on this page come from.</p>
+  <div class="grid">
+    <div class="card"><h3>⚡ Realtime</h3><p>WebSocket fan-out for new, edited and deleted messages, reactions, thread replies, typing indicators and online status.</p></div>
+    <div class="card"><h3># Channels &amp; DMs</h3><p>Public and invite-only private channels, plus 1:1 direct messages. Private channels stay invisible to people outside them.</p></div>
+    <div class="card"><h3>🧵 Threads</h3><p>Reply to any message in a side panel. Parents show the reply count and when the last reply came in.</p></div>
+    <div class="card"><h3>🎉 Reactions</h3><p>One-click emoji reactions that toggle per user and sync instantly to everyone in the channel.</p></div>
+    <div class="card"><h3>🔎 Full-text search</h3><p>SQLite FTS5 with prefix matching. Results only include channels you can read, and user input is quoted so search syntax can't be injected.</p></div>
+    <div class="card"><h3>🔴 Unreads &amp; mentions</h3><p>Per-channel unread and mention badges, a "New" marker at your first unread message, and @mention autocomplete with highlighting.</p></div>
+    <div class="card"><h3>📎 Uploads</h3><p>Drag, drop or paste files. Images show inline, downloads are access-checked, and there's a size limit.</p></div>
+    <div class="card"><h3>🔐 Sane auth</h3><p>argon2id passwords, hashed session tokens in HttpOnly cookies, and WebSocket origin checks.</p></div>
+    <div class="card"><h3>🌗 Dark &amp; light</h3><p>Follows your OS theme and can be toggled. Plain HTML, CSS and JS embedded in the binary, with no build step.</p></div>
+  </div>
+</section>
+
+<section class="gallery">
+  <figure class="shot"><img src="/screenshots/04-main-dark.png" alt="Dark theme with thread panel" loading="lazy" width="1440" height="900"><figcaption>Dark theme with a thread open</figcaption></figure>
+  <figure class="shot"><img src="/screenshots/06-search.png" alt="Search results panel with highlighted matches" loading="lazy" width="1440" height="900"><figcaption>Full-text search across your channels</figcaption></figure>
+  <figure class="shot"><img src="/screenshots/08-unread-dark.png" alt="Sidebar with unread badges on a channel and a DM" loading="lazy" width="1440" height="900"><figcaption>Unread and mention badges</figcaption></figure>
+  <figure class="shot"><img src="/screenshots/07-create-channel.png" alt="Create channel dialog" loading="lazy" width="1440" height="900"><figcaption>Public or private channels</figcaption></figure>
+</section>
+
+<section id="quickstart" class="steps">
+  <h2>Quickstart</h2>
+  <div class="two">
+    <div>
+      <h3>From source</h3>
+<pre><code>git clone https://github.com/shubhxho/rslack
+cd rslack
+cargo build --release
+./target/release/rslack
+# → http://127.0.0.1:8080, data in ./data</code></pre>
+      <p>Create an account, create a workspace, and share its invite code with your team.</p>
+    </div>
+    <div>
+      <h3>Configuration</h3>
+      <table>
+        <tr><td><code>RSLACK_HOST</code></td><td>bind address (<code>127.0.0.1</code>)</td></tr>
+        <tr><td><code>RSLACK_PORT</code></td><td>port (<code>8080</code>)</td></tr>
+        <tr><td><code>RSLACK_DATA_DIR</code></td><td>SQLite + uploads (<code>./data</code>)</td></tr>
+        <tr><td><code>RSLACK_MAX_UPLOAD_MB</code></td><td>per-file limit (<code>10</code>)</td></tr>
+        <tr><td><code>RSLACK_SECURE_COOKIES</code></td><td><code>true</code> behind HTTPS</td></tr>
+        <tr><td><code>RSLACK_ALLOW_SIGNUP</code></td><td><code>false</code> to close sign-ups</td></tr>
+        <tr><td><code>RSLACK_PUBLIC_ORIGIN</code></td><td>public URL for proxies that rewrite <code>Host</code></td></tr>
+      </table>
+      <p class="muted">Every option is also a CLI flag, e.g. <code>rslack --port 9000 --data-dir /srv/rslack</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="docker" class="steps">
+  <h2>Docker</h2>
+  <div class="two">
+<pre><code>docker compose up -d
+# → http://localhost:8080
+# data persists in the rslack-data volume</code></pre>
+    <p>The repo includes a two-stage <code>Dockerfile</code> that ends in a non-root Debian slim image, plus a <code>docker-compose.yml</code> with every setting documented. A Hugging Face Docker Space bundle (port 7860, <code>/data</code> with a <code>/tmp</code> fallback) is ready too.</p>
+  </div>
+</section>
+
+<section class="arch">
+  <h2>How it works</h2>
+  <p>Every write goes the same way: a REST handler checks your access, <b>commits to SQLite</b>, and then hands a JSON event to an in-process hub. The hub pushes it to every open socket of the channel's members. Nothing reaches a client before it's persisted, and a client that reconnects simply re-fetches.</p>
+  <div class="flow"><span>Browser</span><i>→</i><span>axum REST</span><i>→</i><span>SQLite (WAL + FTS5)</span><i>→</i><span>Hub</span><i>→</i><span>WebSocket</span><i>→</i><span>Browsers</span></div>
+</section>
+
+<footer>
+  <p>rslack v0.1 · MIT © 2026 shubhxho · <a href="https://github.com/shubhxho/rslack">Source on GitHub</a></p>
+  <p class="muted">Known gaps in v0.1: it runs as a single node only, has no roles or moderation, and has no rate limiting. See the README for the full list.</p>
+</footer>
+</body>
+</html>
