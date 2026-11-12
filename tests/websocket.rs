@@ -231,3 +231,53 @@ async fn presence_reaches_new_workspace_peers() {
     .await;
     assert_eq!(p["online"], true);
 }
+
+async fn try_connect(srv: &TestServer, user: &TestUser, headers: &[(&'static str, &str)]) -> bool {
+    let mut req = format!("ws://{}/api/ws", srv.addr)
+        .into_client_request()
+        .unwrap();
+    req.headers_mut().insert(
+        "authorization",
+        format!("Bearer {}", user.token).parse().unwrap(),
+    );
+    for (k, v) in headers {
+        req.headers_mut().insert(*k, v.parse().unwrap());
+    }
+    connect_async(req).await.is_ok()
+}
+
+#[tokio::test]
+async fn websocket_origin_behind_reverse_proxy() {
+    // Like Hugging Face Spaces: the browser is on https://<space>.hf.space but the
+    // Host header the server sees is the container address.
+    let srv = TestServer::start_with(|c| {
+        c.public_origin = vec!["https://shubhxho-rslack.hf.space".into()];
+    })
+    .await;
+    let alice = srv.signup("alice").await;
+    assert!(
+        try_connect(
+            &srv,
+            &alice,
+            &[("origin", "https://shubhxho-rslack.hf.space")]
+        )
+        .await
+    );
+    assert!(!try_connect(&srv, &alice, &[("origin", "https://evil.example")]).await);
+
+    // Without the option, X-Forwarded-Host from the proxy is honoured.
+    let srv = TestServer::start().await;
+    let bob = srv.signup("bob").await;
+    assert!(!try_connect(&srv, &bob, &[("origin", "https://chat.example.com")]).await);
+    assert!(
+        try_connect(
+            &srv,
+            &bob,
+            &[
+                ("origin", "https://chat.example.com"),
+                ("x-forwarded-host", "chat.example.com")
+            ]
+        )
+        .await
+    );
+}

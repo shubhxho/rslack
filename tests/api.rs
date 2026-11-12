@@ -143,6 +143,31 @@ async fn signups_can_be_disabled() {
 }
 
 #[tokio::test]
+async fn cookie_attributes_follow_config() {
+    for (samesite, secure, expect) in [
+        ("lax", false, "SameSite=Lax; Max-Age"),
+        ("lax", true, "SameSite=Lax; Secure"),
+        ("none", false, "SameSite=None; Secure; Partitioned"),
+    ] {
+        let srv = TestServer::start_with(|c| {
+            c.cookie_samesite = samesite.into();
+            c.secure_cookies = secure;
+        })
+        .await;
+        let r = srv
+            .http
+            .post(srv.url("/api/auth/signup"))
+            .json(&json!({"username": "alice", "password": "longenough"}))
+            .send()
+            .await
+            .unwrap();
+        let cookie = r.headers()["set-cookie"].to_str().unwrap().to_string();
+        assert!(cookie.contains("HttpOnly"), "{cookie}");
+        assert!(cookie.contains(expect), "{samesite}/{secure}: {cookie}");
+    }
+}
+
+#[tokio::test]
 async fn serves_web_ui_and_health() {
     let srv = TestServer::start().await;
     let r = srv.http.get(srv.url("/")).send().await.unwrap();

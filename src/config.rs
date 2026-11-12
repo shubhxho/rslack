@@ -29,6 +29,18 @@ pub struct Config {
     #[arg(long, env = "RSLACK_SECURE_COOKIES", default_value_t = false, action = ArgAction::Set)]
     pub secure_cookies: bool,
 
+    /// SameSite policy for the session cookie: `lax` (default), `strict` or `none`.
+    /// `none` (which forces `Secure; Partitioned`) is only needed when the UI is
+    /// embedded in a cross-site iframe, e.g. the Hugging Face Space page.
+    #[arg(long, env = "RSLACK_COOKIE_SAMESITE", default_value = "lax", value_parser = ["lax", "strict", "none"])]
+    pub cookie_samesite: String,
+
+    /// Public origin(s) the web UI is served from, e.g. `https://chat.example.com`
+    /// (comma-separated). Needed behind proxies that rewrite `Host` without sending
+    /// `X-Forwarded-Host`; used to validate the WebSocket `Origin` header.
+    #[arg(long, env = "RSLACK_PUBLIC_ORIGIN", value_delimiter = ',')]
+    pub public_origin: Vec<String>,
+
     /// Allow new accounts to sign up.
     #[arg(long, env = "RSLACK_ALLOW_SIGNUP", default_value_t = true, action = ArgAction::Set)]
     pub allow_signup: bool,
@@ -44,6 +56,8 @@ impl Config {
             max_upload_mb: 10,
             secure_cookies: false,
             allow_signup: true,
+            public_origin: vec![],
+            cookie_samesite: "lax".into(),
         }
     }
 

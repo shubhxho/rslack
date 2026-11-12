@@ -141,12 +141,16 @@ async fn create_session(state: &AppState, user_id: i64) -> AppResult<String> {
 }
 
 fn session_cookie(state: &AppState, token: &str, max_age_s: i64) -> String {
-    let secure = if state.config.secure_cookies {
-        "; Secure"
-    } else {
-        ""
+    let attrs = match state.config.cookie_samesite.as_str() {
+        // Cross-site (iframe) use: browsers require Secure; Partitioned keeps it
+        // working where third-party cookies are otherwise blocked (CHIPS).
+        "none" => "SameSite=None; Secure; Partitioned",
+        "strict" if state.config.secure_cookies => "SameSite=Strict; Secure",
+        "strict" => "SameSite=Strict",
+        _ if state.config.secure_cookies => "SameSite=Lax; Secure",
+        _ => "SameSite=Lax",
     };
-    format!("{COOKIE_NAME}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={max_age_s}{secure}")
+    format!("{COOKIE_NAME}={token}; Path=/; HttpOnly; {attrs}; Max-Age={max_age_s}")
 }
 
 #[derive(Deserialize)]

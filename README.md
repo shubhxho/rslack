@@ -76,10 +76,12 @@ Every option can be set with a CLI flag or an environment variable:
 | `--max-upload-mb` | `RSLACK_MAX_UPLOAD_MB` | `10` | Per-file upload limit |
 | `--secure-cookies` | `RSLACK_SECURE_COOKIES` | `false` | Add `Secure` to the session cookie. Turn it on behind HTTPS |
 | `--allow-signup` | `RSLACK_ALLOW_SIGNUP` | `true` | Set to `false` to close registration |
+| `--public-origin` | `RSLACK_PUBLIC_ORIGIN` | *(none)* | Comma-separated public origin(s), e.g. `https://chat.example.com`, accepted for WebSocket `Origin` checks (for proxies that rewrite `Host`) |
+| `--cookie-samesite` | `RSLACK_COOKIE_SAMESITE` | `lax` | `lax`, `strict` or `none`. Use `none` (which forces `Secure; Partitioned`) only when the UI is embedded in a cross-site iframe |
 
 Logging uses `RUST_LOG` (default `rslack=info`).
 
-**Reverse proxy:** forward WebSocket upgrades for `/api/ws` and keep the original `Host` header. The server rejects WebSocket handshakes whose `Origin` doesn't match `Host`, which protects against cross-site WebSocket hijacking.
+**Reverse proxy:** forward WebSocket upgrades for `/api/ws`. The server rejects WebSocket handshakes whose `Origin` doesn't match the `Host` header, the `X-Forwarded-Host` header, or an entry in `RSLACK_PUBLIC_ORIGIN`, which protects against cross-site WebSocket hijacking. If your proxy rewrites `Host` and doesn't send `X-Forwarded-Host`, set `RSLACK_PUBLIC_ORIGIN`.
 
 **Backups:** stop the server and copy the data directory, or run `sqlite3 data/rslack.db ".backup backup.db"` while it's running and copy `uploads/` as well.
 

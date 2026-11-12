@@ -129,19 +129,37 @@ async fn peers(state: &AppState, user: i64) -> AppResult<Vec<i64>> {
 }
 
 /// Reject cross-origin WebSocket handshakes (cookie auth would otherwise allow CSWSH).
-fn origin_ok(headers: &HeaderMap) -> bool {
+///
+/// A browser `Origin` is accepted when it is listed in `public_origins`
+/// (`RSLACK_PUBLIC_ORIGIN`), or when its host matches the request's `Host` or
+/// `X-Forwarded-Host` header (reverse proxies such as Hugging Face Spaces rewrite
+/// `Host`). Browsers don't let a cross-site page set either header on a handshake.
+pub fn origin_ok(headers: &HeaderMap, public_origins: &[String]) -> bool {
     let Some(origin) = headers.get(header::ORIGIN).and_then(|v| v.to_str().ok()) else {
         return true; // non-browser clients
     };
-    let Some(host) = headers.get(header::HOST).and_then(|v| v.to_str().ok()) else {
-        return false;
-    };
+    let origin = origin.trim().trim_end_matches('/');
+    if public_origins
+        .iter()
+        .any(|o| o.trim().trim_end_matches('/').eq_ignore_ascii_case(origin))
+    {
+        return true;
+    }
     let origin_host = origin
         .split_once("://")
         .map(|(_, rest)| rest)
-        .unwrap_or(origin)
-        .trim_end_matches('/');
-    origin_host.eq_ignore_ascii_case(host)
+        .unwrap_or(origin);
+    let header_host = |name: &str| {
+        headers
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.split(',').next())
+            .map(|v| v.trim().to_string())
+    };
+    [header_host("host"), header_host("x-forwarded-host")]
+        .into_iter()
+        .flatten()
+        .any(|h| !h.is_empty() && origin_host.eq_ignore_ascii_case(&h))
 }
 
 pub async fn ws_handler(
@@ -150,7 +168,7 @@ pub async fn ws_handler(
     headers: HeaderMap,
     ws: WebSocketUpgrade,
 ) -> Result<Response, AppError> {
-    if !origin_ok(&headers) {
+    if !origin_ok(&headers, &state.config.public_origin) {
         return Err(AppError::Forbidden(
             "cross-origin websocket rejected".into(),
         ));
@@ -287,18 +305,47 @@ mod tests {
 
     #[test]
     fn origin_check() {
+        let none: Vec<String> = vec![];
         let mut h = HeaderMap::new();
         h.insert(header::HOST, HeaderValue::from_static("chat.example.com"));
-        assert!(origin_ok(&h));
+        assert!(origin_ok(&h, &none));
         h.insert(
             header::ORIGIN,
             HeaderValue::from_static("https://chat.example.com"),
         );
-        assert!(origin_ok(&h));
+        assert!(origin_ok(&h, &none));
         h.insert(
             header::ORIGIN,
             HeaderValue::from_static("https://evil.example"),
         );
-        assert!(!origin_ok(&h));
+        assert!(!origin_ok(&h, &none));
+    }
+
+    #[test]
+    fn origin_behind_proxy() {
+        let none: Vec<String> = vec![];
+        // Proxy rewrote Host to the container address.
+        let mut h = HeaderMap::new();
+        h.insert(header::HOST, HeaderValue::from_static("10.0.0.5:7860"));
+        h.insert(
+            header::ORIGIN,
+            HeaderValue::from_static("https://shubhxho-rslack.hf.space"),
+        );
+        assert!(!origin_ok(&h, &none));
+        // Explicit public origin (trailing slash / case tolerated).
+        let public = vec!["https://Shubhxho-rslack.hf.space/".to_string()];
+        assert!(origin_ok(&h, &public));
+        // Or the proxy forwards the original host.
+        h.insert(
+            "x-forwarded-host",
+            HeaderValue::from_static("shubhxho-rslack.hf.space, other"),
+        );
+        assert!(origin_ok(&h, &none));
+        h.insert(
+            header::ORIGIN,
+            HeaderValue::from_static("https://evil.hf.space"),
+        );
+        assert!(!origin_ok(&h, &none));
+        assert!(!origin_ok(&h, &public));
     }
 }
