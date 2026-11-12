@@ -1,0 +1,20 @@
+{
+  "name": "rslack-frontend",
+  "private": true,
+  "type": "module",
+  "description": "TypeScript sources and tooling for rslack's web UI, browser e2e run and diagram rendering. Not needed to build or run the Rust binary: the compiled web/app.js is committed.",
+  "scripts": {
+    "build:web": "esbuild frontend/src/app.ts --bundle --format=iife --target=es2020 --charset=utf8 --legal-comments=none --banner:js=\"/* Generated from frontend/src/*.ts by esbuild (npm run build:web). Do not edit by hand. */\" --outfile=web/app.js",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "check:web": "npm run build:web && git diff --exit-code -- web/app.js",
+    "e2e": "node e2e/e2e.ts",
+    "diagrams": "node e2e/render-diagrams.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "esbuild": "^0.25.12",
+    "mermaid": "^11.17.2",
+    "playwright-core": "^1.65.0",
+    "typescript": "^5.9.3"
+  }
+}

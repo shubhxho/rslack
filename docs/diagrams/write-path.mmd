@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant A as Alice (browser)
+    participant R as REST handler
+    participant D as SQLite
+    participant H as Hub
+    participant B as Bob (WebSocket)
+    A->>R: POST /api/channels/7/messages
+    R->>R: check membership
+    R->>D: INSERT message (FTS5 trigger indexes it)
+    D-->>R: commit
+    R-->>A: 200 {message}
+    R->>H: broadcast message.new to channel members
+    H-->>B: {"type":"message.new", ...}

@@ -1,14 +1,17 @@
-// Usage: start rslack on :8099 with an empty data dir, then `npm i && node e2e.mjs`.
+// Usage: start rslack on :8099 with an empty data dir, then `npm ci && npm run e2e` from the repo root.
+// Node 22.18+/24 runs this TypeScript file directly (type stripping); `npm run typecheck` checks it.
 // Env: BASE (server URL), CHROME (browser binary), OUT (screenshot dir).
 import { chromium } from 'playwright-core';
+import type { Page } from 'playwright-core';
+import type { Workspace } from '../frontend/src/types.ts';
 const BASE = process.env.BASE || 'http://127.0.0.1:8099';
 const OUT = process.env.OUT || new URL('../docs/screenshots', import.meta.url).pathname;
 const PW = 'correct-horse-42';
-const log = (...a) => console.log('[e2e]', ...a);
-const errors = [];
+const log = (...a: unknown[]): void => console.log('[e2e]', ...a);
+const errors: string[] = [];
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
-const mk = async (theme) => {
+const mk = async (theme: 'light' | 'dark'): Promise<Page> => {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, colorScheme: theme });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
@@ -18,7 +21,7 @@ const mk = async (theme) => {
 const A = await mk('light');
 const B = await mk('dark');
 
-async function signup(page, username, display, shot) {
+async function signup(page: Page, username: string, display: string, shot = false): Promise<void> {
   await page.goto(BASE);
   await page.click('#auth .tab[data-mode=signup]');
   await page.fill('#auth-form [name=username]', username);
@@ -29,7 +32,7 @@ async function signup(page, username, display, shot) {
   await page.waitForSelector('#onboard:not(.hidden)');
 }
 
-async function send(page, text, scope = '#composer-wrap') {
+async function send(page: Page, text: string, scope = '#composer-wrap'): Promise<void> {
   const ta = page.locator(`${scope} textarea`);
   await ta.click();
   await ta.fill(text);
@@ -43,7 +46,7 @@ await A.screenshot({ path: `${OUT}/02-onboarding.png` });
 await A.fill('#onboard-create [name=name]', 'Acme Robotics');
 await A.click('#onboard-create button');
 await A.waitForSelector('#app:not(.hidden) #channel-list li.active');
-const code = await A.evaluate(async () => (await (await fetch('/api/workspaces')).json())[0].invite_code);
+const code = await A.evaluate(async () => ((await (await fetch('/api/workspaces')).json()) as Workspace[])[0].invite_code);
 log('workspace created, invite', code);
 
 await signup(B, 'bob', 'Bob Martinez');
@@ -59,14 +62,14 @@ await A.fill('#cc-form [name=topic]', 'Backend, infra and release planning');
 await A.waitForTimeout(400);
 await A.screenshot({ path: `${OUT}/07-create-channel.png` });
 await A.click('#cc-form .btn.primary');
-await A.waitForFunction(() => document.querySelector('#chan-name').textContent.includes('engineering'));
+await A.waitForFunction(() => (document.querySelector('#chan-name')?.textContent ?? '').includes('engineering'));
 log('channel created');
 
 // 3. Bob browses and joins
 await B.click('#browse-btn');
 await B.waitForSelector('#bc-list [data-join]');
 await B.click('#bc-list li:has-text("engineering") [data-join]');
-await B.waitForFunction(() => document.querySelector('#chan-name').textContent.includes('engineering'));
+await B.waitForFunction(() => (document.querySelector('#chan-name')?.textContent ?? '').includes('engineering'));
 log('bob joined #engineering');
 
 // 4. Exchange messages (realtime)
@@ -139,7 +142,7 @@ await B.locator('#composer-wrap textarea').fill('');
 await B.click('#channel-list li:has-text("general")');
 await A.click('#new-dm-btn');
 await A.click('#dm-people li:has-text("Bob Martinez")');
-await A.waitForFunction(() => document.querySelector('#chan-name').textContent.includes('Bob'));
+await A.waitForFunction(() => (document.querySelector('#chan-name')?.textContent ?? '').includes('Bob'));
 await send(A, 'Hey Bob, quick question about the deploy window — got a sec?');
 await B.waitForSelector('#dm-list li.unread .badge');
 await send(A, 'Also, coffee ☕ at 3?');
@@ -166,6 +169,7 @@ await B.waitForSelector('#panel-body .msg-body:has-text("Sounds good")');
 await B.mouse.move(5, 5);
 await B.screenshot({ path: `${OUT}/04-main-dark.png` });
 const pb = await B.locator('#panel').boundingBox();
+if (!pb) throw new Error('thread panel is not visible');
 await B.screenshot({ path: `${OUT}/05-thread-dark.png`, clip: { x: pb.x, y: 0, width: pb.width, height: 900 } });
 
 // 12. Search

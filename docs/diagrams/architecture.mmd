@@ -1,0 +1,23 @@
+flowchart LR
+    subgraph Browser
+        UI["Web UI<br/>index.html · app.js · app.css"]
+    end
+    subgraph rslack["rslack · single binary"]
+        Static["Embedded assets<br/>rust-embed"]
+        API["REST API<br/>axum handlers"]
+        Auth["Auth extractor<br/>cookie / Bearer"]
+        WS["WebSocket<br/>/api/ws"]
+        Hub["Hub<br/>user_id → connections"]
+    end
+    DB[("SQLite · WAL<br/>tables + FTS5")]
+    FS[["data/uploads/"]]
+    UI -- "GET /" --> Static
+    UI -- "fetch /api/*" --> API
+    UI <-- "events · typing" --> WS
+    API --> Auth
+    WS --> Auth
+    API -- "sqlx" --> DB
+    API -- "stream to disk" --> FS
+    API -- "after commit" --> Hub
+    WS -- "register · presence" --> Hub
+    Hub -- "JSON events" --> WS
